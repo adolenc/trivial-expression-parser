@@ -1,7 +1,7 @@
+### Lexer part
 class Token:
     def __init__(self, type, value):
-        self.type = type
-        self.value = value
+        self.type, self.value = type, value
 
 TOKEN_TYPE_PLUS = 0
 TOKEN_TYPE_MINUS = 1
@@ -14,29 +14,30 @@ TOKEN_TYPE_CLOSE_PAREN = 7
 TOKEN_TYPE_NUMBER = 8
 TOKEN_TYPE_EOF = 9
 
-class Lexer:
-    def __init__(self, expr):
-        self.tokens = [self.convert_to_token(c) for c in expr.split(' ')] \
-                    + [Token(TOKEN_TYPE_EOF, None)]
-
-    def convert_to_token(self, c):
-        char_to_token_type = {'+': TOKEN_TYPE_PLUS,
-                              '-': TOKEN_TYPE_MINUS,
-                              '*': TOKEN_TYPE_STAR,
-                              '/': TOKEN_TYPE_SLASH,
-                              '^': TOKEN_TYPE_CARET,
-                              '!': TOKEN_TYPE_EXCLAMATION,
-                              '(': TOKEN_TYPE_OPEN_PAREN,
-                              ')': TOKEN_TYPE_CLOSE_PAREN}
+def tokenize(expr):
+    def convert_to_token(c):
+        char_to_token_type = {
+            '+': TOKEN_TYPE_PLUS,
+            '-': TOKEN_TYPE_MINUS,
+            '*': TOKEN_TYPE_STAR,
+            '/': TOKEN_TYPE_SLASH,
+            '^': TOKEN_TYPE_CARET,
+            '!': TOKEN_TYPE_EXCLAMATION,
+            '(': TOKEN_TYPE_OPEN_PAREN,
+            ')': TOKEN_TYPE_CLOSE_PAREN
+        }
         if c in char_to_token_type:
             return Token(char_to_token_type[c], c)
         elif c[0].isdigit():
             return Token(TOKEN_TYPE_NUMBER, int(c))
         else:
-            assert False, f'Unknown token: {c}'
+            raise Exception(f'Unknown token: {c}')
+
+    return [convert_to_token(c) for c in expr.split(' ')] \
+         + [Token(TOKEN_TYPE_EOF, None)]
 
 
-
+### Parser part
 class NumberExpression:
     def __init__(self, value):
         self.value = value
@@ -45,16 +46,13 @@ class NumberExpression:
 
 class UnaryExpression:
     def __init__(self, operator, expr):
-        self.operator = operator
-        self.expr = expr
+        self.operator, self.expr = operator, expr
     def __str__(self):
         return f'({self.operator} {self.expr})'
 
 class BinaryExpression:
     def __init__(self, left_expr, operator, right_expr):
-        self.left_expr = left_expr
-        self.operator = operator
-        self.right_expr = right_expr
+        self.left_expr, self.operator, self.right_expr = left_expr, operator, right_expr
     def __str__(self):
         return f'({self.operator} {self.left_expr} {self.right_expr})'
 
@@ -70,8 +68,7 @@ ASSOCIATIVITY_RIGHT = 1
 
 class ParseRule:
     def __init__(self, precedence=PRECEDENCE_MIN, associativity=ASSOCIATIVITY_LEFT):
-        self.precedence = precedence
-        self.associativity = associativity
+        self.precedence, self.associativity = precedence, associativity
 
 class Parser:
     def __init__(self, tokens):
@@ -126,15 +123,16 @@ class Parser:
     
     def consume(self, expected_token_type=None):
         token = self.peek()
-        if expected_token_type: assert token.type == expected_token_type
+        if expected_token_type and token.type != expected_token_type:
+            raise Exception(f'Unexpected token {token}')
         if self.pos < len(self.tokens):
             self.pos += 1
         return token
 
 
-
+### Usage
 def parse_expr(expr_string):
-    eval_val = Parser(Lexer(expr_string).tokens).parse()
+    eval_val = Parser(tokenize(expr_string)).parse()
     print(f'"{expr_string}"  =>  "{eval_val}"')
     return eval_val
 
